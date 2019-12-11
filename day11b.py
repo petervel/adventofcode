@@ -27,7 +27,7 @@ class Processor:
     def runStep(self, wantOutput = False):
         opcode = self.data[self.step]
         debug(2, "step = " + str(self.step) + ", base = " + str(self.base) + ", data: " + str(self.data[self.step:]))
-        debug(1, str(self.step) + ") opcode: " + str(opcode) + ", input : " + str(self.input)+ ", output: " + str(self.output))
+        debug(2, str(self.step) + ") opcode: " + str(opcode) + ", input : " + str(self.input)+ ", output: " + str(self.output))
 
         modes = math.floor(opcode / 100)
         opcode = opcode % 100
@@ -67,7 +67,7 @@ class Processor:
         valA = self.getValue(modes, 1)
         valB = self.getValue(modes, 2)
         target = self.getAddress(modes, 3)
-        debug(1,"data[" + str(target) + "] = " + str(valA) + " + " + str(valB))
+        debug(2,"data[" + str(target) + "] = " + str(valA) + " + " + str(valB))
         self.data[target] = valA + valB
         self.step += 4
 
@@ -75,7 +75,7 @@ class Processor:
         valA = self.getValue(modes, 1)
         valB = self.getValue(modes, 2)
         target = self.getAddress(modes, 3)
-        debug(1,"data[" + str(target) + "] = " + str(valA) + " * " + str(valB))
+        debug(2,"data[" + str(target) + "] = " + str(valA) + " * " + str(valB))
         self.data[target] = valA * valB
         self.step += 4
 
@@ -138,7 +138,7 @@ class Processor:
     def addBase(self, modes): # opcode 9
         valA = self.getValue(modes, 1)
         self.base += valA
-        debug(1,"Base set to " + str(self.base) + " by adding " + str(valA))
+        debug(2,"Base set to " + str(self.base) + " by adding " + str(valA))
         self.step += 2
 
     def getValue(self, modes, offset):
@@ -179,19 +179,20 @@ class Processor:
         return address
 
 DIRECTIONS = [
-    [0, 1],
-    [1, 0],
     [0, -1],
+    [1, 0],
+    [0, 1],
     [-1, 0],
 ]
 
 class Grid:
-    def __init__(self, size):
-        self.size = size
+    def __init__(self, width, height):
+        self.width = width
+        self.height = height
         self.data = []
-        for i in range(size):
+        for y in range(height):
             row = []
-            for j in range(size):
+            for x in range(width):
                 row.append('.')
             self.data.append(row)
 
@@ -205,7 +206,10 @@ class Grid:
         for y, row in enumerate(self.data):
             rowStr = ""
             for x, c in enumerate(row):
-                rowStr += c
+                if c == '.':
+                    rowStr += '█'
+                else:
+                    rowStr += c
             print(rowStr)
 
     def countNot(self, c):
@@ -218,38 +222,22 @@ class Grid:
 
 class Robot:
     def __init__(self, software):
-        self.readings = [0]
+        self.readings = []
         self.commands = []
         self.brain = Processor(software, self.readings, self.commands)
 
-        size = 128
-        self.pos = [int(size/2), int(size / 2)]
+        width = 43
+        height = 6
+        self.pos = [int(0), int(0)]
         self.direction = 0
 
-        self.grid = Grid(size)
+        self.grid = Grid(width, height)
 
-        self.minX = size
-        self.minY = size
-        self.maxX = 0
-        self.maxY = 0
+        self.updateSensors()
 
     def move(self):
         self.pos[0] += DIRECTIONS[self.direction][0]
         self.pos[1] += DIRECTIONS[self.direction][1]
-        debug(2, "Moved robot: (" + str(self.pos))
-
-        if self.pos[0] > self.maxX:
-            self.maxX = self.pos[0]
-            print("max x: " + str(self.maxX))
-        if self.pos[0] < self.minX:
-            self.minX = self.pos[0]
-            print("min x: " + str(self.minX))
-        if self.pos[1] > self.maxY:
-            self.maxY = self.pos[1]
-            print("max y: " + str(self.maxY))
-        if self.pos[1] < self.minY:
-            self.minY = self.pos[1]
-            print("min y: " + str(self.minY))
 
     def turnLeft(self):
         self.direction = (self.direction + len(DIRECTIONS) - 1) % len(DIRECTIONS)
@@ -274,11 +262,11 @@ class Robot:
         self.paint(color)
         self.rotate(rotation)
         self.updateSensors()
-        #self.grid.print()
+        debug(1, "Got rotate " + str(rotation) + ", moved robot: (" + str(self.pos))
 
     def updateSensors(self):
         color = self.grid.getAt(self.pos[0], self.pos[1])
-        val = 0
+        val = 1
         if color == ' ':
             val = 0
         elif color == '█':
@@ -293,6 +281,7 @@ class Robot:
                 cnt = self.grid.countNot('.')
                 print("Total painted: " + str(cnt))
                 break
+
             color = self.brain.output.pop(0)
             rotation = self.brain.output.pop(0)
             self.processCommand(color, rotation)
