@@ -54,6 +54,7 @@ def resolve(grid):
         for x, c in enumerate(row):
             if c == '#':
                 val = str(checkViews(y, x, cloneGrid(grid)))
+                print("x=" + str(x) + ",y="+str(y)+" had " +str(val))
                 while len(val) < 4:
                     val = ' ' + val
                 results[y][x] = val
@@ -84,10 +85,6 @@ def run(data):
 
 def main():
     run(realData)
-
-
-
-
 
 realData = "##.#..#..###.####...######\n\
 #..#####...###.###..#.###.\n\

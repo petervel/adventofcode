@@ -1,89 +1,101 @@
 import math
 
+def pad(s):
+    while len(s) < 4:
+        s = " " + s
+    return s
 
+BASE_X = 20
+BASE_Y = 19
 
+class Asteroid:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
 
-def checkViews(y, x, grid):
-    minX = -x
-    maxX = len(grid[0])
-    xRange = [x]
-    if minX != 0:
-        xRange += range(x-1, (x + minX) - 1, -1)
-    if maxX != x:
-        xRange += range(x + 1, maxX)
+    def getAngle(self):
+        fromX = BASE_X
+        fromY = BASE_Y  # cheating a bit cos I'm lazy
+        relX = self.x - fromX
+        relY = fromY - self.y
+        rads = math.atan2(relX, relY)
+        degs = math.degrees(rads)
+        if degs < 0:
+            degs += 360
+        #print(str(self.x) + "," + str(self.y) + " ==> " +str(relX) + "," + str(relY) + "," + str(degs))
+        return degs
 
-    minY = -y
-    maxY = len(grid)
-    yRange = [y]
-    if minY != 0:
-        yRange += range(y - 1, (y + minY) - 1, -1)
-    if maxY != y:
-        yRange += range(y + 1, maxY)
+    def getDistance(self):
+        fromX = BASE_X
+        fromY = BASE_Y # cheating a bit cos I'm lazy
+        x2 = (self.x - fromX)**2
+        y2 = (self.y - fromY)**2
+        return math.sqrt(x2 + y2)
 
-    #print("(" + str(x) + "," + str(y) +") => " + str(xRange) + " , " + str(yRange))
+    def printCoordinates(self):
+        print("(" + str(self.x) + "," + str(self.y) + ")")
 
-    counter = 0
+    def printDetails(self):
+        print("(" + str(self.x) + "," + str(self.y) + ") => angle=" + str(self.getAngle()) + ", dist=" + str(self.getDistance()))
 
-    for i in yRange:
-        for j in xRange:
-            if i == y and j == x:
-                continue
+    def boom(self, counter):
+        ext = "th"
+        if counter == 1:
+            ext = "st"
+        elif counter == 2:
+            ext = "nd"
+        elif counter == 3:
+            ext = "rd"
+        #self.printDetails()
+        print("The " + str(counter) + ext + " asteroid to be vaporized is at " + str(self.x) + "," + str(self.y) + ".")
 
-            c = grid[i][j]
-            if c == '#':
-                counter += 1
-                #print("Found one at " + str(i) + "," + str(j) + ", counter: " + str(counter))
-                rad = math.atan2(i - y, j - x)
-                for a in range(len(grid)):
-                    for b in range(len(grid[0])):
-                        rad2 = math.atan2(a - y, b - x)
-                        if rad == rad2:
-                            grid[a][b] = '.'
-    return counter
-
-def cloneGrid(grid):
-    result = []
-    for row in grid:
-        result.append(row.copy())
-    return result
-
-def resolve(grid):
-    results = cloneGrid(grid)
-
+def createData(grid):
+    data = []
     for y, row in enumerate(grid):
         for x, c in enumerate(row):
+            if x == BASE_X and y == BASE_Y:
+                continue
             if c == '#':
-                val = str(checkViews(y, x, cloneGrid(grid)))
-                while len(val) < 4:
-                    val = ' ' + val
-                results[y][x] = val
-    return results
+                data.append(Asteroid(x, y))
 
-def printGrid(grid):
-    max = 0
-    for row in grid:
-        printLine = ""
-        for c in row:
-            if c == '.':
-                printLine += "    "
-            else:
-                val = int(c)
-                if val > max:
-                    max = val
-                printLine += str(c)
-        print(printLine)
-    print("Max: " + str(max))
+    return sorted(data, key = lambda x: (x.getAngle(), x.getDistance()))
 
-def run(data):
+def groupByAngle(data):
+    result = {}
+    for ast in data:
+        k = str(math.floor(ast.getAngle()*1000000))
+        if k not in result:
+            result[k] = []
+        #ast.printCoordinates()
+        result[k].append(ast)
+    return result
+
+def shootEm(data):
+    counter = 1
+    while len(data) > 0:
+        for k in list(data.keys()):
+            ar = data[k]
+
+            ast = data[k].pop(0)
+            if len(ar) == 0:
+                del data[k]
+
+            ast.boom(counter)
+            counter += 1
+
+def resolve(grid):
+    data = createData(grid)
+    data = groupByAngle(data)
+    shootEm(data)
+
+def main():
+    data = realData
+
     rows = data.split('\n')
     grid = []
     for row in rows:
         grid.append(list(row))
-    result = resolve(grid)
-    printGrid(result)
-
-def main():
-    run(realData)
+    resolve(grid)
 
 
 
@@ -176,6 +188,10 @@ test5 = ".#..##.###...#######\n\
 #.#.#.#####.####.###\n\
 ###.##.####.##.#..##"
 
-
+test6 = ".#....#####...#..\n\
+##...##.#####..##\n\
+##...#...#.#####.\n\
+..#.....X...###..\n\
+..#.#.....#....##"
 
 main()
