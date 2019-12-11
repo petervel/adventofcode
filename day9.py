@@ -20,6 +20,7 @@ class Amplifier:
         self.output = output
         self.done = False
         self.step = 0
+        self.base = 0
 
     def setInputs(self, input):
         self.input = input
