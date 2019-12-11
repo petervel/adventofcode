@@ -42,28 +42,100 @@ class Amplifier:
                 self.done = True
                 break
             elif opcode == 1: # add
-                self.opcode1(modes)
+                self.add(modes)
             elif opcode == 2: # multiply
-                self.opcode2(modes)
+                self.multiply(modes)
             elif opcode == 3:  # input
                 if len(self.input) == 0:
                     print("no input. stopping")
                     return # stop for now
-                self.opcode3(modes)
+                self.getInput(modes)
             elif opcode == 4:  # output
-                self.opcode4(modes)
+                self.giveOutput(modes)
                 return # after 1 output, the next one should run first
             elif opcode == 5: # jnz
-                self.opcode5(modes)
+                self.jnz(modes)
             elif opcode == 6: # jz
-                self.opcode6(modes)
+                self.jz(modes)
             elif opcode == 7: # set flag if smaller
-                self.opcode7(modes)
+                self.isLess(modes)
             elif opcode == 8: # set flag if equal
-                self.opcode8(modes)
+                self.isEqual(modes)
+            elif opcode == 9: # set base
+                self.addBase(modes)
             else:
                 print("UNKNOWN OPCODE " + str(opcode) + " at position " + str(self.step))
                 exit(1)
+
+    def add(self, modes):
+        valA = self.getValue(modes, 1)
+        valB = self.getValue(modes, 2)
+        target = self.data[self.step + 3]
+        self.data[target] = valA + valB
+        debug(str(self.step) + ") modes " + str(modes) + ", instruction " + str(self.data[self.step]) + " , valA: " + str(valA) + ", valB " + str(valB) + ", target: " + str(target))
+        self.step += 4
+
+    def multiply(self, modes):
+        valA = self.getValue(modes, 1)
+        valB = self.getValue(modes, 2)
+        target = self.data[self.step + 3]
+        self.data[target] = valA * valB
+        debug(str(self.step) + ") modes " + str(modes) + ", instruction " + str(self.data[self.step]) + " , valA: " + str(valA) + ", valB " + str(valB) + ", target: " + str(target))
+        self.step += 4
+
+    def getInput(self, modes):
+        target = self.data[self.step + 1]
+        debug("storing value " + str(self.input) + " to location " + str(target))
+        self.data[target] = self.input.pop(0)
+        self.step += 2
+
+    def giveOutput(self, modes):
+        valA = self.getValue(modes, 1)
+        self.output.append(valA)
+        self.step += 2
+
+    def jnz(self, modes):
+        valA = self.getValue(modes, 1)
+        valB = self.getValue(modes, 2)
+        debug(str(self.step) + ") modes " + str(modes) + ", instruction " + str(self.data[self.step]) + " , valA: " + str(valA) + ", valB " + str(valB))
+        if valA != 0:
+            self.step = valB
+            return
+        self.step += 3
+
+    def jz(self, modes):
+        valA = self.getValue(modes, 1)
+        valB = self.getValue(modes, 2)
+        if valA == 0:
+            self.step = valB
+            return
+        self.step += 3
+
+    def isLess(self, modes):
+        valA = self.getValue(modes, 1)
+        valB = self.getValue(modes, 2)
+        target = self.data[self.step + 3]
+        if valA < valB:
+            self.data[target] = 1
+        else:
+            self.data[target] = 0
+        self.step += 4
+
+    def isEqual(self, modes):
+        valA = self.getValue(modes, 1)
+        valB = self.getValue(modes, 2)
+        target = self.data[self.step + 3]
+        if valA == valB:
+            self.data[target] = 1
+        else:
+            self.data[target] = 0
+        debug(str(self.step) + ") modes " + str(modes) + ", instruction " + str(self.data[self.step]) + " , valA: " + str(valA) + ", valB " + str(valB) + ", target: " + str(target))
+        self.step += 4
+
+    def addBase(self, modes):
+        valA = self.getValue(modes, 1)
+        self.base += valA
+        self.step += 2
 
     def getValue(self, modes, offset):
         for i in range(offset-1):
@@ -80,70 +152,6 @@ class Amplifier:
         debug("val at " + str(address) + " = " + str(val))
         return val
 
-    def opcode1(self, modes):
-        valA = self.getValue(modes, 1)
-        valB = self.getValue(modes, 2)
-        target = self.data[self.step + 3]
-        self.data[target] = valA + valB
-        debug(str(self.step) + ") modes " + str(modes) + ", instruction " + str(self.data[self.step]) + " , valA: " + str(valA) + ", valB " + str(valB) + ", target: " + str(target))
-        self.step += 4
-
-    def opcode2(self, modes):
-        valA = self.getValue(modes, 1)
-        valB = self.getValue(modes, 2)
-        target = self.data[self.step + 3]
-        self.data[target] = valA * valB
-        debug(str(self.step) + ") modes " + str(modes) + ", instruction " + str(self.data[self.step]) + " , valA: " + str(valA) + ", valB " + str(valB) + ", target: " + str(target))
-        self.step += 4
-
-    def opcode3(self, modes):
-        target = self.data[self.step + 1]
-        debug("storing value " + str(self.input) + " to location " + str(target))
-        self.data[target] = self.input.pop(0)
-        self.step += 2
-
-    def opcode4(self, modes):
-        valA = self.getValue(modes, 1)
-        self.output.append(valA)
-        self.step += 2
-
-    def opcode5(self, modes):
-        valA = self.getValue(modes, 1)
-        valB = self.getValue(modes, 2)
-        debug(str(self.step) + ") modes " + str(modes) + ", instruction " + str(self.data[self.step]) + " , valA: " + str(valA) + ", valB " + str(valB))
-        if valA != 0:
-            self.step = valB
-            return
-        self.step += 3
-
-    def opcode6(self, modes):
-        valA = self.getValue(modes, 1)
-        valB = self.getValue(modes, 2)
-        if valA == 0:
-            self.step = valB
-            return
-        self.step += 3
-
-    def opcode7(self, modes):
-        valA = self.getValue(modes, 1)
-        valB = self.getValue(modes, 2)
-        target = self.data[self.step + 3]
-        if valA < valB:
-            self.data[target] = 1
-        else:
-            self.data[target] = 0
-        self.step += 4
-
-    def opcode8(self, modes):
-        valA = self.getValue(modes, 1)
-        valB = self.getValue(modes, 2)
-        target = self.data[self.step + 3]
-        if valA == valB:
-            self.data[target] = 1
-        else:
-            self.data[target] = 0
-        debug(str(self.step) + ") modes " + str(modes) + ", instruction " + str(self.data[self.step]) + " , valA: " + str(valA) + ", valB " + str(valB) + ", target: " + str(target))
-        self.step += 4
 
 def bruteInstance(data, params):
     amps = []
