@@ -1,6 +1,3 @@
-import math
-
-
 class Moon:
     def __init__(self, coords):
         self.pos = coords
